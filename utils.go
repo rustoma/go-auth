@@ -1,5 +1,7 @@
 package main
 
+import "os"
+
 func every[T comparable](slice []T, callback func(value T, index int) bool) bool {
 	length := len(slice)
 
@@ -12,4 +14,11 @@ func every[T comparable](slice []T, callback func(value T, index int) bool) bool
 	}
 
 	return true
+}
+
+func isEnvDev() bool {
+	if os.Getenv("APP_ENV") == "dev" {
+		return true
+	}
+	return false
 }
