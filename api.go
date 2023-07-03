@@ -29,6 +29,10 @@ type LoginResponse struct {
 	AccessToken string `json:"access_token"`
 }
 
+type PostRefreshTokenRequest struct {
+	RefreshToken string `json:"refresh_token"`
+}
+
 func NewApiServer(listenAddr string, storage Storage) *APIServer {
 	return &APIServer{
 		listenAddr,
@@ -40,9 +44,10 @@ func (s *APIServer) Run() {
 	mux := chi.NewRouter()
 
 	mux.Use(middleware.Recoverer)
-	//mux.Use(app.enableCORS)
+	mux.Use(s.enableCORS)
 
 	mux.Get("/api/v1/refresh", makeHTTPHandler(s.HandleRefreshToken))
+	mux.Post("/api/v1/refresh", makeHTTPHandler(s.HandlePostRefreshToken))
 	mux.Get("/api/v1/logout", makeHTTPHandler(s.HandleLogout))
 
 	mux.Post("/api/v1", s.requireAuth(2, 3)(makeHTTPHandler(s.HandleHome)))
@@ -58,6 +63,27 @@ func (s *APIServer) Run() {
 		log.Fatal(err)
 	}
 
+}
+
+func (s *APIServer) enableCORS(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		if isEnvDev() {
+			w.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
+		} else {
+			w.Header().Set("Access-Control-Allow-Origin", "https://topio.pl")
+		}
+
+		w.Header().Set("Access-Control-Allow-Credentials", "true")
+
+		if r.Method == "OPTIONS" {
+			w.Header().Set("Access-Control-Allow-Methods", "GET,PUT,PATCH,DELETE,OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, X-CRSF-Token, Authorization, x-api-key")
+			return
+		} else {
+			h.ServeHTTP(w, r)
+		}
+	})
 }
 
 func makeHTTPHandler(f apiFunc) http.HandlerFunc {
