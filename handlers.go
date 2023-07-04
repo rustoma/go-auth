@@ -130,6 +130,51 @@ func (s *APIServer) HandleLogout(w http.ResponseWriter, r *http.Request) error {
 	return writeJSON(w, http.StatusNoContent, "Logout successful")
 }
 
+func (s *APIServer) HandlePostLogout(w http.ResponseWriter, r *http.Request) error {
+	var postLogoutRequest PostLogoutRequest
+
+	err := readJSON(w, r, &postLogoutRequest)
+
+	if err != nil {
+		return writeJSON(w, http.StatusNoContent, "")
+	}
+
+	user, err := s.store.SelectUserByRefreshToken(postLogoutRequest.RefreshToken)
+
+	if err != nil {
+		cookie := http.Cookie{
+			Name:     "jwt",
+			Value:    "",
+			HttpOnly: true,
+			MaxAge:   -1,
+			Secure:   !isEnvDev(),
+			Path:     "/",
+			SameSite: 4,
+		}
+		http.SetCookie(w, &cookie)
+		return apiError{Err: "user not found", Status: http.StatusForbidden}
+	}
+
+	_, err = s.store.UpdateUserRefreshToken(user.ID, "")
+
+	if err != nil {
+		return apiError{Err: "internal server error", Status: http.StatusInternalServerError}
+	}
+
+	cookie := http.Cookie{
+		Name:     "jwt",
+		Value:    "",
+		HttpOnly: true,
+		MaxAge:   -1,
+		Secure:   !isEnvDev(),
+		Path:     "/",
+		SameSite: 4,
+	}
+	http.SetCookie(w, &cookie)
+
+	return writeJSON(w, http.StatusNoContent, "Logout successful")
+}
+
 func (s *APIServer) HandlePostRefreshToken(w http.ResponseWriter, r *http.Request) error {
 	var postRefreshTokenRequest PostRefreshTokenRequest
 

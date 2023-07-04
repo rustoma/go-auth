@@ -33,6 +33,10 @@ type PostRefreshTokenRequest struct {
 	RefreshToken string `json:"refresh_token"`
 }
 
+type PostLogoutRequest struct {
+	RefreshToken string `json:"refresh_token"`
+}
+
 func NewApiServer(listenAddr string, storage Storage) *APIServer {
 	return &APIServer{
 		listenAddr,
@@ -49,6 +53,7 @@ func (s *APIServer) Run() {
 	mux.Get("/api/v1/refresh", makeHTTPHandler(s.HandleRefreshToken))
 	mux.Post("/api/v1/refresh", makeHTTPHandler(s.HandlePostRefreshToken))
 	mux.Get("/api/v1/logout", makeHTTPHandler(s.HandleLogout))
+	mux.Post("/api/v1/logout", makeHTTPHandler(s.HandlePostLogout))
 
 	mux.Post("/api/v1", s.requireAuth(2, 3)(makeHTTPHandler(s.HandleHome)))
 	mux.Post("/api/v1/login", makeHTTPHandler(s.HandleLogin))
